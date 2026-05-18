@@ -6114,10 +6114,12 @@ function startSentenceQuizDirect(sentenceIndex) {
         return;
     }
 
-    // 3. 구글 로봇에게 '마치 독립된 하나의 카테고리인 것처럼' 보이도록 임시 가공용 방을 만듭니다.
+    // 3. 주소창 및 타이틀 변경 (사장님 기존 startQuiz 엔진 로직 완벽 보존)
     activeCatId = 'cat_sentence_direct'; 
-    currentCategoryData = [targetData]; // 👈 로봇에게는 오직 이 1가지 문제만 있는 배열로 전달합니다.
     activeCategoryName = `Learn Korean Quiz #${sentenceIndex}`;
+
+    window.history.pushState({sentence: sentenceIndex}, '', `?sentence=${sentenceIndex}`);
+    document.title = activeCategoryName + " - Learn Korean Game";
 
     // 4. [대박 포인트] 구글 로봇용 메타 설명을 이 단어의 영어 팁(tip)으로 즉시 강제 교체!!!
     if (targetData.tip) {
@@ -6125,17 +6127,47 @@ function startSentenceQuizDirect(sentenceIndex) {
         if (metaDesc) metaDesc.setAttribute("content", targetData.tip);
     }
 
-    // 5. 주소창 및 타이틀 변경 (사장님 기존 startQuiz 엔진 로직 완벽 보존)
-    window.history.pushState({sentence: sentenceIndex}, '', `?sentence=${sentenceIndex}`);
-    document.title = activeCategoryName + " - Learn Korean Game";
+    // 5. 🚨 [엔진 속이기 핵심] 4지선다 오답 보기를 정상적으로 만들기 위한 '오답 수영장' 생성
+    // 사장님 기존 엔진(getRandomOptions)은 currentCategoryData 안에서만 오답을 찾으므로,
+    // 다른 모든 카테고리(family, food 등)의 단어들을 싹 다 모아서 함께 믹서기에 꽂아줍니다.
+    let totalPool = [];
+    if (typeof quizData !== 'undefined') {
+        for (let cat in quizData) {
+            totalPool = totalPool.concat(quizData[cat]);
+        }
+    }
+    
+    // 현재 정답 단어를 맨 앞에 두고, 그 뒤에 수많은 오답 단어들을 수영장처럼 붙여줍니다.
+    currentCategoryData = [targetData].concat(totalPool);
 
     // 6. 화면 전환: 메인 메뉴를 숨기고 퀴즈 게임판을 엽니다.
     document.getElementById('menu-screen').classList.remove('active');
     document.getElementById('quiz-screen').classList.add('active');
+    
+    const topBtn = document.getElementById('top-open-btn');
+    if (topBtn) topBtn.style.display = 'block';
 
-    // 7. 인덱스 초기화 및 퀴즈 로딩 (기존 loadQuiz 엔진 작동)
+    // 7. 💥 [텍스트 강제 주입] "..."이나 빈칸으로 멈추던 화면 구역 직접 텍스트 꽂아넣기
+    // ① 카테고리 제목 강제 주입
+    const titleEl = document.getElementById('quiz-category-title');
+    if (titleEl) titleEl.innerText = activeCategoryName;
+
+    // ② 🏫 화면 중앙의 메인 영어 단어(School 등) 강제 주입
+    const wordEl = document.getElementById('quiz-word');
+    if (wordEl) wordEl.innerText = targetData.english;
+
+    // ③ 💡 노란 박스 'Teacher's Tip' 내용 강제 주입 ("Tap to start learning" 지우기)
+    const tipContainer = document.querySelector('.tip-box p');
+    if (tipContainer) {
+        tipContainer.innerHTML = `<strong>🧑‍🏫 Teacher's Tip</strong><br>${targetData.tip}`;
+    }
+
+    // 8. 인덱스 초기화 및 퀴즈 로딩 (기존 loadQuiz 엔진 작동)
+    // 이제 정답과 오답이 믹서기에 꽉 채워져서 들어가므로 에러 없이 사지선다가 완벽하게 가동됩니다.
     currentIdx = 0;
-    loadQuiz(true); 
+    if (typeof loadQuiz === 'function') {
+        loadQuiz(true); 
+    }
 }
   const allSentencesData = [
     { 

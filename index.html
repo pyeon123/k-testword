@@ -6127,43 +6127,47 @@ function startSentenceQuizDirect(sentenceIndex) {
         if (metaDesc) metaDesc.setAttribute("content", targetData.tip);
     }
 
-    // 5. 🚨 [엔진 속이기 핵심] 4지선다 오답 보기를 정상적으로 만들기 위한 '오답 수영장' 생성
-    // 사장님 기존 엔진(getRandomOptions)은 currentCategoryData 안에서만 오답을 찾으므로,
-    // 다른 모든 카테고리(family, food 등)의 단어들을 싹 다 모아서 함께 믹서기에 꽂아줍니다.
-    let totalPool = [];
+    // 5. 🚨 [진짜 핵심: 기존 엔진 완벽 속이기] quizData에 가짜 카테고리 실시간 주입!!!
+    // 기존 loadQuiz가 quizData['cat_sentence_direct']를 읽어갈 때 에러가 나지 않도록 서랍을 직접 꽂아줍니다.
     if (typeof quizData !== 'undefined') {
-        for (let cat in quizData) {
-            totalPool = totalPool.concat(quizData[cat]);
-        }
-    }
-    
-    // 현재 정답 단어를 맨 앞에 두고, 그 뒤에 수많은 오답 단어들을 수영장처럼 붙여줍니다.
-    currentCategoryData = [targetData].concat(totalPool);
+        // 정답 데이터 형식을 기존 퀴즈 형식({english, korean})에 맞추어 변환하여 넣어줍니다.
+        quizData['cat_sentence_direct'] = [{
+            english: targetData.english,
+            korean: targetData.korean
+        }];
 
-    // 6. 화면 전환: 메인 메뉴를 숨기고 퀴즈 게임판을 엽니다.
+        // 6. 4지선다 오답 보기를 만들기 위한 '오답 풀' 채워넣기
+        // 사장님 기존 엔진은 currentCategoryData 내에서 오답을 고르므로, 여기에 다른 단어들을 하객으로 붙여줍니다.
+        let totalPool = [];
+        for (let cat in quizData) {
+            if (cat !== 'cat_sentence_direct') { // 무한 루프 방지
+                totalPool = totalPool.concat(quizData[cat]);
+            }
+        }
+        currentCategoryData = quizData['cat_sentence_direct'].concat(totalPool);
+    }
+
+    // 7. 화면 전환: 메인 메뉴를 숨기고 퀴즈 게임판을 엽니다.
     document.getElementById('menu-screen').classList.remove('active');
     document.getElementById('quiz-screen').classList.add('active');
     
     const topBtn = document.getElementById('top-open-btn');
     if (topBtn) topBtn.style.display = 'block';
 
-    // 7. 💥 [텍스트 강제 주입] "..."이나 빈칸으로 멈추던 화면 구역 직접 텍스트 꽂아넣기
-    // ① 카테고리 제목 강제 주입
+    // 8. 💥 [텍스트 강제 주입] 혹시 모를 타이밍 이슈 방지를 위해 텍스트 직접 주입
     const titleEl = document.getElementById('quiz-category-title');
     if (titleEl) titleEl.innerText = activeCategoryName;
 
-    // ② 🏫 화면 중앙의 메인 영어 단어(School 등) 강제 주입
     const wordEl = document.getElementById('quiz-word');
     if (wordEl) wordEl.innerText = targetData.english;
 
-    // ③ 💡 노란 박스 'Teacher's Tip' 내용 강제 주입 ("Tap to start learning" 지우기)
     const tipContainer = document.querySelector('.tip-box p');
     if (tipContainer) {
         tipContainer.innerHTML = `<strong>🧑‍🏫 Teacher's Tip</strong><br>${targetData.tip}`;
     }
 
-    // 8. 인덱스 초기화 및 퀴즈 로딩 (기존 loadQuiz 엔진 작동)
-    // 이제 정답과 오답이 믹서기에 꽉 채워져서 들어가므로 에러 없이 사지선다가 완벽하게 가동됩니다.
+    // 9. 인덱스 초기화 및 퀴즈 로딩 (기존 loadQuiz 엔진 작동)
+    // 이제 quizData 서랍에 데이터가 확실히 존재하므로 loadQuiz가 튕겨 나가지 않고 끝까지 작동합니다!
     currentIdx = 0;
     if (typeof loadQuiz === 'function') {
         loadQuiz(true); 

@@ -6097,78 +6097,64 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 🆕 구글 로봇용 100문장 직행 파라미터가 들어왔을 때 실시간으로 카테고리를 가공해 주는 연동 함수
+// 🆕 구글 로봇용 100문장 직행 파라미터 연동 함수
 function startSentenceQuizDirect(sentenceIndex) {
-    // 1. 전체 100문장 통합 데이터(allSentencesData)가 존재하는지 먼저 확인합니다.
+    // 1. 전체 100문장 통합 데이터(allSentencesData) 존재 확인
     if (typeof allSentencesData === 'undefined' || !allSentencesData || allSentencesData.length === 0) {
-        console.error("100문장 데이터(allSentencesData)를 찾을 수 없습니다.");
+        console.error("100문장 데이터 없음");
         initMenu();
         return;
     }
 
-    // 2. 입력받은 index 번호(1~100)에 맞는 데이터가 있는지 검증합니다. (배열 인덱스는 0부터 시작하므로 -1)
+    // 2. 입력받은 index 번호(1~100) 데이터 검증 (배열은 0부터 시작하므로 -1)
     const targetData = allSentencesData[sentenceIndex - 1];
     if (!targetData) {
-        console.error(sentenceIndex + "번에 해당하는 문장 데이터가 없습니다.");
+        console.error(sentenceIndex + "번 데이터 없음");
         initMenu();
         return;
     }
 
-    // 3. 주소창 및 타이틀 변경 (사장님 기존 startQuiz 엔진 로직 완벽 보존)
+    // 3. 사장님이 설계하신 공통 가짜 방 이름 지정
     activeCatId = 'cat_sentence_direct'; 
     activeCategoryName = `Learn Korean Quiz #${sentenceIndex}`;
 
+    // 4. 주소창 조작 및 구글 봇용 타이틀 고정
     window.history.pushState({sentence: sentenceIndex}, '', `?sentence=${sentenceIndex}`);
     document.title = activeCategoryName + " - Learn Korean Game";
 
-    // 4. [대박 포인트] 구글 로봇용 메타 설명을 이 단어의 영어 팁(tip)으로 즉시 강제 교체!!!
+    // 5. 구글 로봇용 낚시 메타 태그 교체 (사장님 원본 변수 targetData.tip 사용)
     if (targetData.tip) {
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc) metaDesc.setAttribute("content", targetData.tip);
     }
 
-    // 5. 🚨 [진짜 핵심: 기존 엔진 완벽 속이기] quizData에 가짜 카테고리 실시간 주입!!!
-    // 기존 loadQuiz가 quizData['cat_sentence_direct']를 읽어갈 때 에러가 나지 않도록 서랍을 직접 꽂아줍니다.
-    if (typeof quizData !== 'undefined') {
-        // 정답 데이터 형식을 기존 퀴즈 형식({english, korean})에 맞추어 변환하여 넣어줍니다.
-        quizData['cat_sentence_direct'] = [{
-            english: targetData.english,
-            korean: targetData.korean
-        }];
-
-        // 6. 4지선다 오답 보기를 만들기 위한 '오답 풀' 채워넣기
-        // 사장님 기존 엔진은 currentCategoryData 내에서 오답을 고르므로, 여기에 다른 단어들을 하객으로 붙여줍니다.
-        let totalPool = [];
-        for (let cat in quizData) {
-            if (cat !== 'cat_sentence_direct') { // 무한 루프 방지
-                totalPool = totalPool.concat(quizData[cat]);
-            }
-        }
-        currentCategoryData = quizData['cat_sentence_direct'].concat(totalPool);
-    }
-
-    // 7. 화면 전환: 메인 메뉴를 숨기고 퀴즈 게임판을 엽니다.
+    // 6. 화면 UI 전환 (메인 메뉴 숨기고 퀴즈 스크린 켜기)
     document.getElementById('menu-screen').classList.remove('active');
     document.getElementById('quiz-screen').classList.add('active');
     
     const topBtn = document.getElementById('top-open-btn');
     if (topBtn) topBtn.style.display = 'block';
 
-    // 8. 💥 [텍스트 강제 주입] 혹시 모를 타이밍 이슈 방지를 위해 텍스트 직접 주입
+    // 7. 💥 [강제 주입] 사장님 원본 데이터 변수명에 맞게 화면 텍스트 강제 꽂기!
+    // ① 카테고리 제목 강제 주입
     const titleEl = document.getElementById('quiz-category-title');
     if (titleEl) titleEl.innerText = activeCategoryName;
 
+    // ② 🏫 화면 중앙의 메인 영어 단어(Company 등) 강제 주입
     const wordEl = document.getElementById('quiz-word');
-    if (wordEl) wordEl.innerText = targetData.english;
+    if (wordEl) wordEl.innerText = targetData.en; // 사장님 스타일 'en'
 
+    // ③ 💡 노란 박스 'Teacher's Tip' 내용 강제 주입
     const tipContainer = document.querySelector('.tip-box p');
     if (tipContainer) {
-        tipContainer.innerHTML = `<strong>🧑‍🏫 Teacher's Tip</strong><br>${targetData.tip}`;
+        tipContainer.innerHTML = `<strong>🧑‍🏫 Teacher's Tip</strong><br>${targetData.tip}`; // 사장님 스타일 'tip'
     }
 
-    // 9. 인덱스 초기화 및 퀴즈 로딩 (기존 loadQuiz 엔진 작동)
-    // 이제 quizData 서랍에 데이터가 확실히 존재하므로 loadQuiz가 튕겨 나가지 않고 끝까지 작동합니다!
-    currentIdx = 0;
+    // 8. 사장님 공통 서랍 세팅 후 기존 믹서기 가동!
+    // 이제 주소창이 1번(?sentence=1)이면 1번째 문제(회사)가 정답으로 나가고, 2번이면 교실이 나갑니다!
+    currentCategoryData = quizData['cat_sentence_direct'];
+    currentIdx = sentenceIndex - 1; 
+    
     if (typeof loadQuiz === 'function') {
         loadQuiz(true); 
     }
@@ -7305,6 +7291,20 @@ function startSentenceQuizDirect(sentenceIndex) {
         { kr: "결과", rom: "Gyeol-gwa", en: "Result", tip: "How to refer to the outcome or effect of an action or process in Korean?" }
     ]}
 };
+    quizData['cat_sentence_direct'] = [
+    { 
+        kr: "회사", 
+        rom: "Hwi-sa", 
+        en: "Company", 
+        tip: "How to say the place of business or office where people work in Korean? A common setting in office K-dramas." 
+    },
+    { 
+        kr: "교실", 
+        rom: "Gyo-sil", 
+        en: "Classroom", 
+        tip: "How to refer to the specific room in a school where lessons take place in Korean?" 
+    }
+];
 // 1. 문제별 맞춤형 팁 데이터 (기존 30개 사용)
 const todaySpecialData = [
     { kr: "대박", rom: "Dae-bak", en: "Awesome", tip: "The ultimate word for surprising or wonderful news! Use it for something great." },

@@ -7361,9 +7361,15 @@ function displayCurrentTip() {
     function loadQuiz(autoSpeak = false) {
     resetRecognitionState();
     const data = currentCategoryData[currentIdx];
-    document.getElementById('situation').textContent = `${allQuizData[activeCatId].name}`;
 
-    // 💡 팁 글자를 가져와서 노란 박스에 넣어주는 코드 추가
+    // 🆕 [수정] 구글 전용 비밀 방('s'로 시작)일 때와 기존 방일 때 타이틀 이름을 다르게 가져옵니다.
+    if (activeCatId.startsWith('s')) {
+        document.getElementById('situation').textContent = activeCategoryName; // 'Learn Korean Quiz #1' 출력
+    } else {
+        document.getElementById('situation').textContent = `${allQuizData[activeCatId].name}`;
+    }
+
+    // 💡 팁 글자를 가져와서 노란 박스에 넣어주는 코드
     const tipEl = document.getElementById('category-tip-text');
     if (tipEl) {
         tipEl.textContent = data.tip || "Listen and repeat the phrase!";
@@ -7377,18 +7383,32 @@ function displayCurrentTip() {
     container.innerHTML = "";
     
     let choices = [{text: data.en, isCorrect: true}];
-    let others = currentCategoryData.filter(item => item.en !== data.en);
+    
+    // 🆕 [핵심 수리] 구글 비밀 방은 데이터가 1개뿐이므로, 오답 3개를 기존 '가족(family)' 방에서 훔쳐 옵니다!
+    let others = [];
+    if (activeCatId.startsWith('s')) {
+        // 기존 family 카테고리 데이터에서 정답과 다른 단어들을 안전하게 훔쳐 오기
+        others = allQuizData['family'].data.filter(item => item.en !== data.en);
+    } else {
+        // 기존 카테고리들은 원래 방식대로 자기 방에서 오답 추출
+        others = currentCategoryData.filter(item => item.en !== data.en);
+    }
+    
+    // 오답 3개 무작위로 섞어서 3지선다(정답1+오답2) 또는 4지선다 만들기
     shuffleArray(others);
-    choices.push({text: others[0].en, isCorrect: false});
-    choices.push({text: others[1].en, isCorrect: false});
+    if (others[0]) choices.push({text: others[0].en, isCorrect: false});
+    if (others[1]) choices.push({text: others[1].en, isCorrect: false});
+    
     shuffleArray(choices);
 
     choices.forEach((choice, i) => {
-        const btn = document.createElement('button'); btn.className = 'opt-item';
+        const btn = document.createElement('button'); 
+        btn.className = 'opt-item';
         btn.textContent = (i + 1) + ". " + choice.text;
         btn.onclick = () => checkAnswer(choice.isCorrect);
         container.appendChild(btn);
     });
+    
     if (autoSpeak) { setTimeout(speak, 1000); }
 }
 

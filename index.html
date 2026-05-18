@@ -6097,66 +6097,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 🆕 구글 로봇용 100문장 직행 파라미터 연동 함수
 function startSentenceQuizDirect(sentenceIndex) {
-    // 1. 전체 100문장 통합 데이터(allSentencesData) 존재 확인
     if (typeof allSentencesData === 'undefined' || !allSentencesData || allSentencesData.length === 0) {
-        console.error("100문장 데이터 없음");
+        console.error("100문장 데이터(allSentencesData)를 찾을 수 없습니다.");
         initMenu();
         return;
     }
 
-    // 2. 입력받은 index 번호(1~100) 데이터 검증 (배열은 0부터 시작하므로 -1)
     const targetData = allSentencesData[sentenceIndex - 1];
     if (!targetData) {
-        console.error(sentenceIndex + "번 데이터 없음");
+        console.error(sentenceIndex + "번에 해당하는 문장 데이터가 없습니다.");
         initMenu();
         return;
     }
 
-    // 3. 사장님이 설계하신 공통 가짜 방 이름 지정
-    activeCatId = 'cat_sentence_direct'; 
+    activeCatId = 'cat_sentence_direct';
     activeCategoryName = `Learn Korean Quiz #${sentenceIndex}`;
 
-    // 4. 주소창 조작 및 구글 봇용 타이틀 고정
     window.history.pushState({sentence: sentenceIndex}, '', `?sentence=${sentenceIndex}`);
     document.title = activeCategoryName + " - Learn Korean Game";
 
-    // 5. 구글 로봇용 낚시 메타 태그 교체 (사장님 원본 변수 targetData.tip 사용)
     if (targetData.tip) {
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc) metaDesc.setAttribute("content", targetData.tip);
     }
 
-    // 6. 화면 UI 전환 (메인 메뉴 숨기고 퀴즈 스크린 켜기)
+    // 🚨 수정됨: quizData 대신 정상적인 변수인 allQuizData를 사용합니다.
+    let totalPool = [];
+    if (typeof allQuizData !== 'undefined') {
+        for (let cat in allQuizData) {
+            totalPool = totalPool.concat(allQuizData[cat].data);
+        }
+    }
+    
+    currentCategoryData = [targetData].concat(totalPool);
+
     document.getElementById('menu-screen').classList.remove('active');
     document.getElementById('quiz-screen').classList.add('active');
     
     const topBtn = document.getElementById('top-open-btn');
     if (topBtn) topBtn.style.display = 'block';
 
-    // 7. 💥 [강제 주입] 사장님 원본 데이터 변수명에 맞게 화면 텍스트 강제 꽂기!
-    // ① 카테고리 제목 강제 주입
-    const titleEl = document.getElementById('quiz-category-title');
-    if (titleEl) titleEl.innerText = activeCategoryName;
-
-    // ② 🏫 화면 중앙의 메인 영어 단어(Company 등) 강제 주입
-    const wordEl = document.getElementById('quiz-word');
-    if (wordEl) wordEl.innerText = targetData.en; // 사장님 스타일 'en'
-
-    // ③ 💡 노란 박스 'Teacher's Tip' 내용 강제 주입
-    const tipContainer = document.querySelector('.tip-box p');
-    if (tipContainer) {
-        tipContainer.innerHTML = `<strong>🧑‍🏫 Teacher's Tip</strong><br>${targetData.tip}`; // 사장님 스타일 'tip'
-    }
-
-    // 8. 사장님 공통 서랍 세팅 후 기존 믹서기 가동!
-    // 이제 주소창이 1번(?sentence=1)이면 1번째 문제(회사)가 정답으로 나가고, 2번이면 교실이 나갑니다!
-    currentCategoryData = quizData['cat_sentence_direct'];
-    currentIdx = sentenceIndex - 1; 
-    
+    currentIdx = 0;
     if (typeof loadQuiz === 'function') {
-        loadQuiz(true); 
+        loadQuiz(true);
     }
 }
   const allSentencesData = [
@@ -7291,20 +7275,6 @@ function startSentenceQuizDirect(sentenceIndex) {
         { kr: "결과", rom: "Gyeol-gwa", en: "Result", tip: "How to refer to the outcome or effect of an action or process in Korean?" }
     ]}
 };
-    quizData['cat_sentence_direct'] = [
-    { 
-        kr: "회사", 
-        rom: "Hwi-sa", 
-        en: "Company", 
-        tip: "How to say the place of business or office where people work in Korean? A common setting in office K-dramas." 
-    },
-    { 
-        kr: "교실", 
-        rom: "Gyo-sil", 
-        en: "Classroom", 
-        tip: "How to refer to the specific room in a school where lessons take place in Korean?" 
-    }
-];
 // 1. 문제별 맞춤형 팁 데이터 (기존 30개 사용)
 const todaySpecialData = [
     { kr: "대박", rom: "Dae-bak", en: "Awesome", tip: "The ultimate word for surprising or wonderful news! Use it for something great." },
@@ -7397,15 +7367,13 @@ function displayCurrentTip() {
     function loadQuiz(autoSpeak = false) {
     resetRecognitionState();
     const data = currentCategoryData[currentIdx];
-
-    // 🆕 [수정] 구글 전용 비밀 방('s'로 시작)일 때와 기존 방일 때 타이틀 이름을 다르게 가져옵니다.
-    if (activeCatId.startsWith('s')) {
-        document.getElementById('situation').textContent = activeCategoryName; // 'Learn Korean Quiz #1' 출력
+    
+    if (activeCatId.startsWith('s') || activeCatId === 'cat_sentence_direct') {
+        document.getElementById('situation').textContent = activeCategoryName;
     } else {
         document.getElementById('situation').textContent = `${allQuizData[activeCatId].name}`;
     }
 
-    // 💡 팁 글자를 가져와서 노란 박스에 넣어주는 코드
     const tipEl = document.getElementById('category-tip-text');
     if (tipEl) {
         tipEl.textContent = data.tip || "Listen and repeat the phrase!";
@@ -7417,26 +7385,21 @@ function displayCurrentTip() {
     
     const container = document.getElementById('options-container');
     container.innerHTML = "";
-    
     let choices = [{text: data.en, isCorrect: true}];
     
-    // 🆕 [핵심 수리] 구글 비밀 방은 데이터가 1개뿐이므로, 오답 3개를 기존 '가족(family)' 방에서 훔쳐 옵니다!
     let others = [];
-    if (activeCatId.startsWith('s')) {
-        // 기존 family 카테고리 데이터에서 정답과 다른 단어들을 안전하게 훔쳐 오기
-        others = allQuizData['family'].data.filter(item => item.en !== data.en);
+    // 🚨 수정됨: 'family' 대신 실제 키 값인 'cat_family'로 오답 데이터를 가져옵니다.
+    if (activeCatId.startsWith('s') || activeCatId === 'cat_sentence_direct') {
+        others = allQuizData['cat_family'].data.filter(item => item.en !== data.en);
     } else {
-        // 기존 카테고리들은 원래 방식대로 자기 방에서 오답 추출
         others = currentCategoryData.filter(item => item.en !== data.en);
     }
     
-    // 오답 3개 무작위로 섞어서 3지선다(정답1+오답2) 또는 4지선다 만들기
     shuffleArray(others);
     if (others[0]) choices.push({text: others[0].en, isCorrect: false});
     if (others[1]) choices.push({text: others[1].en, isCorrect: false});
     
     shuffleArray(choices);
-
     choices.forEach((choice, i) => {
         const btn = document.createElement('button'); 
         btn.className = 'opt-item';
